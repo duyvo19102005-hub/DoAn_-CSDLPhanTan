@@ -1,0 +1,576 @@
+﻿@model DoAn_CSDLPhanTan.Models.ThiSinh
+@{
+    ViewData["Title"] = "Cổng Tra Cứu Điểm Thi Quốc Gia";
+
+    // Đọc trạng thái từ Controller. Nếu Controller không truyền sang, mặc định là true (Online)
+    bool isNodeBacOnline = ViewBag.IsNodeBacOnline ?? true;
+    bool isNodeNamOnline = ViewBag.IsNodeNamOnline ?? true;
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    :root {
+        --primary-blue: #002D5A;
+        --accent-red: #cc0000;
+        --glass-bg: rgba(255, 255, 255, 0.95);
+    }
+
+    body {
+        background: linear-gradient(135deg, #f1f4f9 0%, #dff1ff 100%);
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* =========================================
+           HIỆU ỨNG ANIMATIONS (KEYFRAMES)
+           ========================================= */
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(50px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes pulse-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+        }
+    }
+
+    /* Hiệu ứng tỏa sáng cho đèn đỏ */
+    @@keyframes pulse-red {
+        0% {
+            box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+        }
+    }
+
+    @@keyframes badgeGlow {
+        0% {
+            background-color: #f8f9fa;
+            color: #dc3545;
+        }
+
+        50% {
+            background-color: #dc3545;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(220,53,69,0.5);
+        }
+
+        100% {
+            background-color: #f8f9fa;
+            color: #dc3545;
+        }
+    }
+
+    /* =========================================
+           STYLES GIAO DIỆN CHÍNH
+           ========================================= */
+    .portal-header {
+        background: var(--primary-blue);
+        border-bottom: 4px solid var(--accent-red);
+        padding: 1.5rem 0;
+        color: white;
+    }
+
+    .live-badge {
+        animation: badgeGlow 2s infinite;
+        transition: all 0.3s ease;
+    }
+
+    .main-dashboard {
+        display: grid;
+        grid-template-columns: 300px 1fr 300px;
+        gap: 20px;
+        padding: 30px;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    /* Gắn hiệu ứng trượt lên cho các thẻ */
+    .animate-up-1 {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+
+    .animate-up-2 {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.15s;
+        opacity: 0;
+    }
+
+    .animate-up-3 {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.3s;
+        opacity: 0;
+    }
+
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255,255,255,0.8);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+        padding: 20px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
+    /* HIỆU ỨNG ĐÈN NODE MỚI */
+    .node-status {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 12px;
+        height: 12px;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        z-index: 2;
+    }
+
+    .status-pulse {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        z-index: 1;
+        animation: breathing-glow 1.5s ease-out infinite;
+    }
+    /* Trạng thái Online - Xanh lá */
+    .online .status-dot {
+        background-color: #10b981;
+    }
+
+    .online .status-pulse {
+        background-color: #10b981;
+    }
+
+    /* Trạng thái Offline - Đỏ */
+    .offline .status-dot {
+        background-color: #ef4444;
+    }
+
+    .offline .status-pulse {
+        background-color: #ef4444;
+    }
+
+    @@keyframes breathing-glow {
+        0% {
+            transform: scale(1);
+            opacity: 0.6;
+        }
+
+        100% {
+            transform: scale(3.5);
+            opacity: 0;
+        }
+    }
+
+    .search-section {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        border-top: 5px solid var(--primary-blue);
+        transition: all 0.3s ease;
+    }
+
+        .search-section:hover {
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1) !important;
+        }
+
+    /* Input & Button Tương tác */
+    .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(0, 45, 90, 0.15);
+        border-color: var(--primary-blue);
+    }
+
+    .btn-primary {
+        background: var(--primary-blue);
+        border: none;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        position: relative;
+    }
+
+        .btn-primary:hover {
+            background: #004080;
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0, 45, 90, 0.2) !important;
+        }
+
+        .btn-primary i {
+            transition: transform 0.3s ease;
+        }
+
+        .btn-primary:hover i {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+    /* CSS CAPTCHA an toàn */
+    .captcha-box {
+        background: #f8f9fa;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 20px;
+        letter-spacing: 5px;
+        text-decoration: line-through;
+        padding: 10px 20px;
+        border: 1px dashed #ced4da;
+        border-radius: 8px;
+        min-width: 120px;
+        display: inline-block;
+        text-align: center;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+
+    /* Thẻ điểm nổi bồng bềnh */
+    .score-item {
+        background: #f1f3f5;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 2px solid transparent;
+    }
+
+        .score-item:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-color: rgba(0, 45, 90, 0.2);
+            background: white;
+        }
+
+    .score-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--primary-blue);
+        display: block;
+    }
+
+    /* Log hệ thống */
+    .system-log {
+        font-size: 0.85rem;
+        height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+        .system-log::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .system-log::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 5px;
+        }
+
+    .log-entry {
+        animation: slideInRight 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+        .log-entry:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .log-entry:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .log-entry:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .log-entry:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+    @@media (max-width: 1100px) {
+        .main-dashboard {
+            grid-template-columns: 1fr;
+        }
+
+        .side-panel {
+            display: none;
+        }
+    }
+</style>
+
+<div class="portal-header shadow-lg">
+    <div class="container-fluid px-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="fw-bold text-uppercase mb-0"><i class="bi bi-bank2 me-3 opacity-75"></i>Hệ Thống Tra Cứu Điểm Thi Quốc Gia</h3>
+                <p class="mb-0 opacity-75 small mt-1">Mô hình Cơ sở dữ liệu Phân tán Đa vùng - 2026</p>
+            </div>
+            <div class="text-end">
+                <span class="badge live-badge px-3 py-2 border rounded-pill"><i class="bi bi-broadcast me-1"></i> LIVE DATA</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main-dashboard">
+    <aside class="side-panel animate-up-1">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold text-uppercase mb-4 text-secondary"><i class="bi bi-hdd-network-fill me-2 text-primary"></i>Hạ tầng phân mảnh</h6>
+
+            <!-- Node Miền Bắc -->
+            <div class="mb-4 p-3 border rounded bg-white shadow-sm">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small fw-bold text-dark">Node Miền Bắc</span>
+                    <div id="node-bac-container" class="node-status offline">
+                        <span class="status-pulse"></span>
+                        <span class="status-dot"></span>
+                    </div>
+                </div>
+                <div class="text-muted extra-small mt-2" style="font-size: 0.75rem;"><i class="bi bi-database me-1"></i>SBD 001 - 500</div>
+            </div>
+
+            <!-- Node Miền Nam -->
+            <div class="mb-4 p-3 border rounded bg-white shadow-sm">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small fw-bold text-dark">Node Miền Nam</span>
+                    <div id="node-nam-container" class="node-status offline">
+                        <span class="status-pulse"></span>
+                        <span class="status-dot"></span>
+                    </div>
+                </div>
+                <div class="text-muted extra-small mt-2" style="font-size: 0.75rem;"><i class="bi bi-database me-1"></i>SBD 501 - 1000</div>
+            </div>
+            <div class="d-flex align-items-center p-3 mt-5 border-0 shadow-sm rounded-3"
+                 style="background: rgba(13, 202, 240, 0.1); gap: 12px;">
+                <i class="bi bi-info-circle-fill text-info fs-4 flex-shrink-0"></i>
+                <span class="text-dark fw-medium small" style="line-height: 1.4;">
+                    Hệ thống <b>Query Router</b> tự động định tuyến truy vấn đến database gần nhất.
+                </span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="animate-up-2">
+        <div class="search-section shadow-lg mb-4">
+            <form asp-action="Index" method="post">
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-muted small text-uppercase"><i class="bi bi-upc-scan me-2"></i>Số báo danh (001 - 1000)</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-vcard text-primary"></i></span>
+                        <input type="text" name="soBaoDanh" class="form-control border-start-0 ps-0 shadow-none"
+                               placeholder="Nhập số báo danh..." required autocomplete="off" />
+                    </div>
+                </div>
+
+                <div class="mb-5 p-3 border rounded-3 bg-light position-relative">
+                    <label class="form-label d-block fw-bold text-muted small text-uppercase mb-3"><i class="bi bi-shield-lock me-2"></i>Xác thực hệ thống</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="captcha-box shadow-sm bg-white"
+                             onselectstart="return false"
+                             onmousedown="return false"
+                             oncopy="return false"
+                             oncontextmenu="return false;">
+                            @(ViewBag.CaptchaDisplay ?? "ERROR")
+                        </div>
+                        <input type="text" name="captchaInput" class="form-control text-center fw-bold border-2 border-primary"
+                               style="width: 140px; height: 50px; font-size: 1.2rem; text-transform: uppercase;" placeholder="Nhập mã" required autocomplete="off">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold text-uppercase py-3 shadow">
+                    <i class="bi bi-search me-2"></i> Bắt đầu tra cứu
+                </button>
+            </form>
+        </div>
+
+        <div id="result-area" class="animate-up-3">
+            @if (ViewBag.Maintenance != null)
+            {
+                <div class="alert alert-danger p-4 border-0 border-start border-5 border-danger rounded-4 shadow-lg">
+                    <div class="d-flex align-items-center">
+                        <div class="fs-1 me-4">
+                            <i class="bi bi-cone-striped text-danger" style="animation: pulseOffline 2s infinite; border-radius: 50%;"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-danger">HỆ THỐNG ĐANG BẢO TRÌ</h5>
+                            <p class="mb-0 text-dark">@ViewBag.Maintenance</p>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (ViewBag.Error != null)
+            {
+                <div class="alert alert-warning p-4 border-0 border-start border-5 border-warning rounded-4 shadow-lg">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill fs-2 text-warning me-3"></i>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">TỪ CHỐI TRUY CẬP</h5>
+                            <p class="mb-0 text-dark">@ViewBag.Error</p>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (Model != null)
+            {
+                <div class="glass-card border-0 p-0 overflow-hidden shadow-lg border-top border-5 border-success">
+                    <div class="bg-white p-4 border-bottom d-flex justify-content-between align-items-center" style="background: linear-gradient(to right, #ffffff, #f0fdf4) !important;">
+                        <h5 class="fw-bold mb-0 text-success"><i class="bi bi-check-circle-fill me-2"></i>Hồ Sơ Thí Sinh</h5>
+                        <span class="badge bg-success py-2 px-3 shadow-sm"><i class="bi bi-geo-alt-fill me-1"></i> @ViewBag.Node</span>
+                    </div>
+                    <div class="p-4 p-md-5 bg-white">
+                        <div class="row mb-5">
+                            <div class="col-6">
+                                <label class="text-muted small fw-bold text-uppercase d-block mb-1">Số báo danh</label>
+                                <span class="fs-2 fw-bold text-dark">@Model.MaTS</span>
+                            </div>
+                            <div class="col-6 text-end">
+                                <label class="text-muted small fw-bold text-uppercase d-block mb-1">Họ và tên</label>
+                                <span class="fs-3 fw-bold text-primary">@Model.HoTen</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-4">
+                                <div class="score-item">
+                                    <small class="fw-bold text-muted mb-2 d-block">TOÁN</small>
+                                    <span class="score-value">@Model.DiemToan</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="score-item" style="border: 2px solid var(--primary-blue); background: #f8fbff;">
+                                    <small class="fw-bold text-primary mb-2 d-block">NGỮ VĂN</small>
+                                    <span class="score-value">@Model.DiemVan</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="score-item">
+                                    <small class="fw-bold text-muted mb-2 d-block">NGOẠI NGỮ</small>
+                                    <span class="score-value">@Model.DiemAnh</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </main>
+
+    <aside class="side-panel animate-up-1">
+        <div class="glass-card h-100">
+            <h6 class="fw-bold text-uppercase mb-4 text-secondary"><i class="bi bi-terminal-fill me-2 text-dark"></i>Nhật ký hệ thống</h6>
+            <div class="system-log">
+                @if (ViewBag.Maintenance != null)
+                {
+                    <div class="log-entry mb-3 p-3 bg-white rounded border-start border-4 border-danger shadow-sm">
+                        <small class="d-block fw-bold text-danger mb-1"><i class="bi bi-x-octagon-fill me-1"></i> ERROR</small>
+                        <span class="text-dark">Cảnh báo rớt mạng: @ViewBag.Maintenance</span>
+                    </div>
+                }
+                else if (ViewBag.Error != null)
+                {
+                    <div class="log-entry mb-3 p-3 bg-white rounded border-start border-4 border-warning shadow-sm">
+                        <small class="d-block fw-bold text-warning mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> WARNING</small>
+                        <span class="text-dark">Tra cứu thất bại: @ViewBag.Error</span>
+                    </div>
+                }
+                else if (Model != null)
+                {
+                    <div class="log-entry mb-3 p-3 bg-white rounded border-start border-4 border-success shadow-sm">
+                        <small class="d-block fw-bold text-success mb-1"><i class="bi bi-check-circle-fill me-1"></i> SUCCESS</small>
+                        <span class="text-dark">Kết nối phân mảnh thành công tới @ViewBag.Node. Kéo dữ liệu SBD @Model.MaTS.</span>
+                    </div>
+                }
+
+                <div class="log-entry mb-3 p-3 bg-white rounded border-start border-4 border-primary shadow-sm">
+                    <small class="d-block fw-bold text-primary mb-1"><i class="bi bi-info-circle-fill me-1"></i> INFO</small>
+                    <span class="text-dark">Mạch định tuyến Query Router sẵn sàng nhận yêu cầu tra cứu.</span>
+                </div>
+
+                <div class="log-entry mb-3 p-3 bg-white rounded border-start border-4 border-secondary shadow-sm">
+                    <small class="d-block fw-bold text-secondary mb-1"><i class="bi bi-gear-fill me-1"></i> SYSTEM</small>
+                    <span class="text-dark">Chính sách Phân mảnh ngang (Range) đã tải thành công.</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+    <script>
+            // 1. Hàm khởi tạo: Lấy trạng thái đã lưu để hiển thị ngay lập tức
+            function initLights() {
+                const status = JSON.parse(localStorage.getItem('nodeStatus') || '{"bac":false,"nam":false}');
+                applyColor('node-bac-container', status.bac);
+                applyColor('node-nam-container', status.nam);
+            }
+
+            function applyColor(id, isOnline) {
+                const el = document.getElementById(id);
+                if (el) el.className = isOnline ? "node-status online" : "node-status offline";
+            }
+
+            // 2. Hàm cập nhật từ Server
+            function updateNodeStatus() {
+                fetch('/Home/GetNodesStatus')
+                    .then(res => res.json())
+                    .then(data => {
+                        applyColor('node-bac-container', data.nodeBac);
+                        applyColor('node-nam-container', data.nodeNam);
+
+                        // Lưu lại trạng thái mới nhất
+                        localStorage.setItem('nodeStatus', JSON.stringify({
+                            bac: data.nodeBac,
+                            nam: data.nodeNam
+                        }));
+                    })
+                    .catch(err => console.log("Re-connecting..."));
+            }
+
+            // Chạy khởi tạo ngay khi script load
+            initLights();
+
+            // Cập nhật định kỳ 5 giây
+            setInterval(updateNodeStatus, 5000);
+            updateNodeStatus();
+    </script>
+           
+</div>
